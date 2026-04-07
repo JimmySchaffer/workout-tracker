@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Workout">
+  <meta name="theme-color" content="#0d0d0d">
+  <title>Workout Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0d0d0d; 
+      color: #f5f5f5;
+      padding: 16px;
+      padding-top: max(16px, env(safe-area-inset-top));
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+    .card {
+      background: #1a1a1a;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    h1 { font-size: 24px; font-weight: 600; }
+    h2 { font-size: 20px; font-weight: 600; }
+    .sub { color: #a3a3a3; font-size: 14px; margin-top: 4px; }
+    .hide { display: none !important; }
+    
+    .days {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .day-btn {
+      background: #262626;
+      border: 2px solid #333;
+      border-radius: 12px;
+      padding: 20px 12px;
+      text-align: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .day-btn:active { background: #333; }
+    .day-name { font-weight: 600; font-size: 18px; color: #f5f5f5; }
+    .day-type { font-size: 12px; color: #a3a3a3; margin-top: 4px; }
+    
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 18px;
+      font-size: 17px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 16px;
+      text-align: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-green { background: #22c55e; color: #000; }
+    .btn-gray { background: #262626; color: #f5f5f5; border: 1px solid #333; }
+    .btn-ghost { background: transparent; color: #a3a3a3; }
+    .btn-outline { background: transparent; color: #22c55e; border: 2px solid #22c55e; }
+    .btn:active { opacity: 0.8; }
+    
+    .ex-list { margin-top: 16px; }
+    .ex-item { 
+      display: flex; 
+      justify-content: space-between; 
+      padding: 14px 0; 
+      border-bottom: 1px solid #333; 
+    }
+    .ex-item:last-child { border-bottom: none; }
+    
+    .header { display: flex; justify-content: space-between; font-size: 14px; color: #a3a3a3; margin-bottom: 12px; }
+    .prog-bar { height: 4px; background: #262626; border-radius: 2px; margin-bottom: 20px; }
+    .prog-fill { height: 100%; background: #22c55e; border-radius: 2px; }
+    
+    .timer-box { text-align: center; padding: 20px 0; border-bottom: 1px solid #333; margin-bottom: 20px; }
+    .timer-label { font-size: 12px; color: #a3a3a3; text-transform: uppercase; }
+    .timer-val { font-size: 56px; font-weight: 700; margin: 8px 0; font-variant-numeric: tabular-nums; }
+    .timer-val.over { color: #f59e0b; }
+    .timer-sub { font-size: 12px; color: #666; }
+    
+    .field { margin-bottom: 20px; }
+    .field label { display: block; font-size: 11px; color: #a3a3a3; text-transform: uppercase; margin-bottom: 8px; }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      padding: 16px;
+      font-size: 20px;
+      font-weight: 500;
+      background: #262626;
+      border: 1px solid #333;
+      border-radius: 10px;
+      color: #f5f5f5;
+      text-align: center;
+      -webkit-appearance: none;
+    }
+    .field input:focus, .field textarea:focus { outline: none; border-color: #22c55e; }
+    .field textarea { text-align: left; font-size: 16px; min-height: 80px; }
+    .field-hint { font-size: 12px; color: #22c55e; margin-top: 6px; text-align: center; }
+    .field-sub { font-size: 11px; color: #666; margin-top: 4px; text-align: center; }
+    
+    .rpe-row { display: flex; gap: 8px; }
+    .rpe-btn {
+      flex: 1;
+      padding: 16px 8px;
+      font-size: 18px;
+      font-weight: 500;
+      background: #262626;
+      border: 1px solid #333;
+      border-radius: 10px;
+      color: #f5f5f5;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .rpe-btn:active { background: #333; }
+    .rpe-btn.sel { background: #22c55e; color: #000; border-color: #22c55e; }
+    .rpe-labels { display: flex; justify-content: space-between; font-size: 10px; color: #666; margin-top: 6px; }
+    
+    .note-toggle { background: none; border: none; color: #a3a3a3; font-size: 14px; padding: 10px 0; cursor: pointer; }
+    
+    .review-item { background: #262626; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+    .review-head { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+    .review-data { font-size: 13px; color: #a3a3a3; }
+    .review-edit { background: none; border: none; color: #22c55e; font-size: 13px; margin-top: 8px; cursor: pointer; padding: 4px 0; }
+    
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 24px 0; }
+    .stat { background: #262626; padding: 20px; border-radius: 12px; text-align: center; }
+    .stat-val { font-size: 32px; font-weight: 700; }
+    .stat-lbl { font-size: 11px; color: #a3a3a3; margin-top: 4px; }
+    
+    .check { 
+      width: 72px; height: 72px; 
+      background: #22c55e; 
+      border-radius: 50%; 
+      margin: 0 auto 20px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      font-size: 36px;
+    }
+    
+    .info-box {
+      background: #262626;
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #a3a3a3;
+    }
+    .info-box strong { color: #f5f5f5; }
+    
+    .info-toggle {
+      background: none;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #a3a3a3;
+      font-size: 12px;
+      padding: 6px 12px;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+    }
+    .modal-content {
+      background: #1a1a1a;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 400px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal h2 { margin-bottom: 16px; }
+    
+    .history-item {
+      background: #262626;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .history-date { color: #a3a3a3; font-size: 11px; }
+    
+    .import-area {
+      border: 2px dashed #333;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      margin-top: 16px;
+      cursor: pointer;
+    }
+    .import-area:active { border-color: #22c55e; }
+    .import-area input { display: none; }
+    
+    .restore-banner {
+      background: #262626;
+      border: 2px solid #f59e0b;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .restore-banner h3 {
+      color: #f59e0b;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    .restore-banner p {
+      color: #a3a3a3;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    
+    .backup-reminder {
+      background: #14532d;
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 16px;
+      text-align: center;
+    }
+    .backup-reminder p {
+      color: #86efac;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    
+    .saved-badge {
+      display: inline-block;
+      background: #14532d;
+      color: #86efac;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- SCREEN: Select Day -->
+<div id="s-select" class="screen">
+  <!-- Restore Banner (shown when no history) -->
+  <div id="restore-banner" class="restore-banner hide">
+    <h3>No workout history found</h3>
+    <p>If you've used this app before, restore your backup to see past weights and progress.</p>
+    <button class="btn btn-outline" onclick="showImport()" style="margin-top:0;">Restore from Backup</button>
+  </div>
+
+  <div class="card">
+    <h1>Workout Tracker</h1>
+    <p class="sub">Select today's workout</p>
+    
+    <div class="days">
+      <div class="day-btn" onclick="pickDay('monday')">
+        <div class="day-name">Monday</div>
+        <div class="day-type">Upper Push</div>
+      </div>
+      <div class="day-btn" onclick="pickDay('tuesday')">
+        <div class="day-name">Tuesday</div>
+        <div class="day-type">Cardio + Core</div>
+      </div>
+      <div class="day-btn" onclick="pickDay('wednesday')">
+        <div class="day-name">Wednesday</div>
+        <div class="day-type">Lower Body</div>
+      </div>
+      <div class="day-btn" onclick="pickDay('thursday')">
+        <div class="day-name">Thursday</div>
+        <div class="day-type">Upper Pull</div>
+      </div>
+      <div class="day-btn" onclick="pickDay('friday')">
+        <div class="day-name">Friday</div>
+        <div class="day-type">Cardio + Mobility</div>
+      </div>
+      <div class="day-btn" onclick="pickDay('saturday')">
+        <div class="day-name">Saturday</div>
+        <div class="day-type">Full Body</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <button class="btn btn-gray" onclick="showHistory()" style="margin-top:0;">View History (<span id="history-count">0</span> workouts)</button>
+    <button class="btn btn-ghost" onclick="showImport()">Import Backup</button>
+  </div>
+</div>
+
+<!-- SCREEN: Preview -->
+<div id="s-preview" class="screen hide">
+  <div class="card">
+    <h1 id="pv-title">-</h1>
+    <p class="sub" id="pv-sub">-</p>
+    <div class="ex-list" id="pv-list"></div>
+    <button class="btn btn-green" onclick="beginWorkout()">Start workout</button>
+    <button class="btn btn-ghost" onclick="goSelect()">← Back</button>
+  </div>
+</div>
+
+<!-- SCREEN: Doing Set -->
+<div id="s-set" class="screen hide">
+  <div class="header">
+    <span id="st-elapsed">0:00</span>
+    <span id="st-count">Set 1 of 14</span>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="st-prog" style="width:0%"></div></div>
+  <div class="card">
+    <h2 id="st-name">-</h2>
+    <p class="sub" id="st-info">-</p>
+    
+    <button type="button" class="info-toggle" id="st-info-toggle" onclick="toggleInfo()">What's this exercise?</button>
+    <div id="st-info-box" class="info-box hide"></div>
+    
+    <div id="st-angle" class="field hide" style="margin-top:20px;">
+      <label>Incline angle</label>
+      <select id="in-angle">
+        <option value="">Select</option>
+        <option value="25">25° (lower incline)</option>
+        <option value="35">35° (standard)</option>
+      </select>
+      <p style="font-size:11px;color:#666;margin-top:6px;text-align:center;">25° hits more chest, 35° more shoulders</p>
+    </div>
+    
+    <button class="btn btn-green" onclick="setDone()">Set complete ✓</button>
+    <button class="btn btn-ghost" onclick="showSkipModal()">Skip this set</button>
+  </div>
+</div>
+
+<!-- SCREEN: Rest + Log -->
+<div id="s-rest" class="screen hide">
+  <div class="header">
+    <span id="rs-elapsed">0:00</span>
+    <span id="rs-count">Set 1 of 14</span>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="rs-prog" style="width:0%"></div></div>
+  <div class="card">
+    <div class="timer-box">
+      <div class="timer-label">Resting</div>
+      <div class="timer-val" id="rs-timer">0:00</div>
+      <div class="timer-sub" id="rs-target">Target: 90s</div>
+    </div>
+    
+    <h2 id="rs-name">-</h2>
+    <p class="sub" id="rs-info">-</p>
+    
+    <div style="margin-top:24px;">
+      <div class="field">
+        <label>Weight (lbs total)</label>
+        <input type="number" inputmode="decimal" id="in-weight" placeholder="0">
+        <div class="field-hint" id="weight-hint"></div>
+        <div class="field-sub" id="weight-sub">For dumbbells: enter combined weight of both</div>
+      </div>
+      <div class="field">
+        <label>Reps</label>
+        <input type="number" inputmode="numeric" id="in-reps" placeholder="0">
+      </div>
+      <div class="field">
+        <label>RPE (difficulty)</label>
+        <div class="rpe-row">
+          <button type="button" class="rpe-btn" onclick="pickRpe(6)">6</button>
+          <button type="button" class="rpe-btn" onclick="pickRpe(7)">7</button>
+          <button type="button" class="rpe-btn" onclick="pickRpe(8)">8</button>
+          <button type="button" class="rpe-btn" onclick="pickRpe(9)">9</button>
+          <button type="button" class="rpe-btn" onclick="pickRpe(10)">10</button>
+        </div>
+        <div class="rpe-labels"><span>Warmup</span><span>Could do 2-3 more</span><span>Max</span></div>
+      </div>
+      <div class="field">
+        <button type="button" class="note-toggle" id="note-tog" onclick="showNote()">+ Add note</button>
+        <textarea id="in-note" class="hide" placeholder="Any issues or notes?"></textarea>
+      </div>
+    </div>
+    
+    <button class="btn btn-green" onclick="logSet()">Log & next set →</button>
+    <button class="btn btn-ghost" onclick="goBackSet()">← Back</button>
+  </div>
+</div>
+
+<!-- SCREEN: Review -->
+<div id="s-review" class="screen hide">
+  <div class="card">
+    <h1>Review</h1>
+    <p class="sub">Check entries before finishing</p>
+    <div id="rv-list" style="margin-top:20px; max-height: 50vh; overflow-y: auto;"></div>
+    
+    <div class="field" style="margin-top:20px;">
+      <label>Workout notes (optional)</label>
+      <textarea id="workout-notes" placeholder="Overall thoughts, energy level, things to remember..."></textarea>
+    </div>
+    
+    <button class="btn btn-green" onclick="finishWorkout()">Looks good ✓</button>
+  </div>
+</div>
+
+<!-- SCREEN: Done -->
+<div id="s-done" class="screen hide">
+  <div class="card" style="text-align:center;">
+    <div class="check">✓</div>
+    <h1>Done!</h1>
+    <p class="sub" id="dn-sub">-</p>
+    <div class="stats">
+      <div class="stat"><div class="stat-val" id="dn-sets">0</div><div class="stat-lbl">Sets</div></div>
+      <div class="stat"><div class="stat-val" id="dn-vol">0</div><div class="stat-lbl">Volume</div></div>
+    </div>
+    
+    <div class="backup-reminder">
+      <span class="saved-badge">✓ Saved locally</span>
+      <p>Download a backup to keep your data safe</p>
+      <button class="btn btn-green" onclick="exportData()" style="margin-top:0;">Download This Workout</button>
+      <button class="btn btn-gray" onclick="exportAllHistory()">Download All History</button>
+    </div>
+    
+    <button class="btn btn-ghost" onclick="resetAll()">Done</button>
+  </div>
+</div>
+
+<!-- MODAL: Skip reason -->
+<div id="m-skip" class="modal hide">
+  <div class="modal-content">
+    <h2>Skip this set?</h2>
+    <div class="field">
+      <label>Reason (optional)</label>
+      <textarea id="skip-reason" placeholder="Why are you skipping?"></textarea>
+    </div>
+    <button class="btn btn-green" onclick="confirmSkip()">Skip set</button>
+    <button class="btn btn-ghost" onclick="closeSkipModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- MODAL: History -->
+<div id="m-history" class="modal hide">
+  <div class="modal-content">
+    <h2>Workout History</h2>
+    <div id="history-list"></div>
+    <button class="btn btn-gray" onclick="exportAllHistory()" style="margin-top:16px;">Download All History</button>
+    <button class="btn btn-ghost" onclick="closeHistory()">Close</button>
+  </div>
+</div>
+
+<!-- MODAL: Import -->
+<div id="m-import" class="modal hide">
+  <div class="modal-content">
+    <h2>Import Backup</h2>
+    <p class="sub">Upload your workout JSON files or an all-history backup</p>
+    <div class="import-area" onclick="document.getElementById('import-input').click()">
+      <p style="color:#a3a3a3;">Tap to select files</p>
+      <p style="color:#666; font-size:12px; margin-top:8px;">Accepts individual workouts or full history backup</p>
+      <input type="file" id="import-input" accept=".json" multiple onchange="handleImport(this.files)">
+    </div>
+    <div id="import-status" style="margin-top:16px; font-size:14px; color:#a3a3a3;"></div>
+    <button class="btn btn-ghost" onclick="closeImport()">Close</button>
+  </div>
+</div>
+
+<script>
+var DAYS = {
+  monday: {
+    name: "Upper Body Push",
+    mins: 45,
+    ex: [
+      {id:"bench", name:"Barbell Bench Press", sets:3, reps:"8-10", rest:90, eq:"Power rack", desc:"Lie on bench, grip bar slightly wider than shoulders. Lower bar to mid-chest, press up. Keep feet flat, shoulder blades squeezed together. The bar path should be slightly diagonal (lower to chest, press toward face)."},
+      {id:"shpr", name:"Dumbbell Shoulder Press", sets:3, reps:"10-12", rest:60, eq:"Dumbbells", desc:"Seated or standing, hold dumbbells at shoulder height with palms facing forward. Press straight up until arms are extended, lower with control. Keep core tight, don't arch your back excessively."},
+      {id:"ifly", name:"Incline Dumbbell Flyes", sets:3, reps:"12", rest:60, eq:"Dumbbells", angle:1, desc:"Set bench to 25-35°. Hold dumbbells above chest with slight bend in elbows. Lower arms out to sides in an arc until you feel a stretch in your chest. Squeeze chest to bring weights back together. Keep the bend in your elbows constant throughout."},
+      {id:"push", name:"Cable Tricep Pushdowns", sets:3, reps:"12-15", rest:45, eq:"Cable", desc:"Face the cable machine, grip the rope or bar attachment. Keep elbows pinned to your sides. Push down until arms are fully extended, squeeze triceps at bottom. Control the weight back up. Don't let elbows flare out."},
+      {id:"latr", name:"Lateral Raises", sets:2, reps:"15", rest:45, eq:"Dumbbells", desc:"Stand holding light dumbbells at your sides. Raise arms out to the sides until parallel with floor (like making a T shape). Keep slight bend in elbows, control the weight down. Don't swing or use momentum. Lead with your elbows, not your hands."}
+    ]
+  },
+  tuesday: {
+    name: "Cardio + Core",
+    mins: 35,
+    ex: [
+      {id:"bike", name:"Stationary Bike", sets:1, reps:"15 min", rest:60, eq:"Bike", desc:"Moderate pace, keep RPM around 70-90. Should be able to hold a conversation but feel slightly breathless."},
+      {id:"hiit", name:"HIIT Intervals", sets:5, reps:"30s/30s", rest:30, eq:"Bodyweight", desc:"30 seconds all-out effort (burpees, jumping jacks, high knees, or mountain climbers), then 30 seconds rest. Repeat 5 times."},
+      {id:"plnk", name:"Plank Hold", sets:3, reps:"30-45s", rest:45, eq:"Bodyweight", desc:"Forearms and toes on ground, body in straight line from head to heels. Keep core tight, don't let hips sag or pike up. Breathe steadily."},
+      {id:"crch", name:"Cable Crunches", sets:3, reps:"15-20", rest:45, eq:"Cable", desc:"Kneel facing cable machine, hold rope behind head. Crunch down by flexing your spine, bringing elbows toward knees. Focus on contracting abs, not pulling with arms."},
+      {id:"lgrs", name:"Hanging Leg Raises", sets:3, reps:"10-12", rest:45, eq:"Rack", desc:"Hang from pull-up bar, raise legs until parallel to floor (or higher). Control the descent, don't swing. Bend knees to make it easier."}
+    ]
+  },
+  wednesday: {
+    name: "Lower Body",
+    mins: 50,
+    ex: [
+      {id:"sqt", name:"Barbell Back Squat", sets:4, reps:"8-10", rest:120, eq:"Power rack", desc:"Bar on upper back (not neck), feet shoulder-width apart. Sit back and down, keeping chest up and knees tracking over toes. Go until thighs are parallel to floor or below. Drive through heels to stand."},
+      {id:"rdl", name:"Romanian Deadlift", sets:3, reps:"10-12", rest:90, eq:"Barbell", desc:"Hold barbell at hip level, feet hip-width apart. Push hips back while lowering the bar along your legs, keeping back flat. Feel the stretch in hamstrings, then squeeze glutes to return to standing. Knees stay slightly bent throughout."},
+      {id:"lng", name:"Walking Lunges", sets:3, reps:"12 each", rest:60, eq:"Dumbbells", desc:"Step forward into a lunge (both knees at 90°), then step the back foot forward into the next lunge. Keep torso upright, don't let front knee go past toes."},
+      {id:"lcl", name:"Leg Curl", sets:3, reps:"12-15", rest:45, eq:"Cable", desc:"Using cable or machine, curl your heels toward your glutes. Squeeze hamstrings at top, control the weight back down."},
+      {id:"clf", name:"Calf Raises", sets:4, reps:"15-20", rest:45, eq:"Dumbbells", desc:"Stand on edge of step or flat ground, holding dumbbells. Rise up onto toes as high as possible, squeeze calves at top. Lower heels below the step for full stretch."}
+    ]
+  },
+  thursday: {
+    name: "Upper Body Pull",
+    mins: 45,
+    ex: [
+      {id:"pul", name:"Pull-ups / Lat Pulldown", sets:3, reps:"8-10", rest:90, eq:"Rack/Cable", desc:"Pull-ups: Hang from bar, pull yourself up until chin clears bar. Lat pulldown: Sit at machine, pull bar to upper chest. Both: squeeze shoulder blades together, lead with elbows."},
+      {id:"row", name:"Barbell Row", sets:3, reps:"8-10", rest:90, eq:"Barbell", desc:"Hinge at hips with flat back, holding barbell. Pull bar to lower chest/upper abs, squeezing shoulder blades. Lower with control. Don't round your back or use momentum."},
+      {id:"fcp", name:"Face Pulls", sets:3, reps:"15-20", rest:45, eq:"Cable", desc:"Set cable at face height with rope attachment. Pull toward face, separating hands and externally rotating shoulders (thumbs back). Squeeze rear delts. Great for shoulder health."},
+      {id:"bcl", name:"Bicep Curls", sets:3, reps:"10-12", rest:45, eq:"Dumbbells", desc:"Stand holding dumbbells at sides. Curl weights up while keeping elbows pinned to sides. Squeeze biceps at top, lower with control. Don't swing."},
+      {id:"hcl", name:"Hammer Curls", sets:2, reps:"12", rest:45, eq:"Dumbbells", desc:"Same as bicep curls but with palms facing each other (neutral grip). Works the brachialis and forearms more."}
+    ]
+  },
+  friday: {
+    name: "Cardio + Mobility",
+    mins: 30,
+    ex: [
+      {id:"bk2", name:"Easy Bike", sets:1, reps:"20 min", rest:0, eq:"Bike", desc:"Light effort, recovery pace. Focus on spinning legs, keeping heart rate low. Should be able to easily hold a conversation."},
+      {id:"hip", name:"Hip Flexor Stretch", sets:2, reps:"45s each", rest:15, eq:"Bodyweight", desc:"Kneel on one knee, other foot forward. Shift hips forward until you feel a stretch in front of back leg's hip. Keep torso upright. Hold each side."},
+      {id:"pig", name:"Pigeon Pose", sets:2, reps:"60s each", rest:15, eq:"Bodyweight", desc:"From hands and knees, bring one knee forward and out to the side, extending other leg back. Sink hips toward floor, feel stretch in outer hip/glute. Hold each side."},
+      {id:"tsp", name:"Thoracic Rotation", sets:2, reps:"10 each", rest:15, eq:"Bodyweight", desc:"On hands and knees, place one hand behind head. Rotate that elbow down toward opposite arm, then open up toward ceiling. Follow your elbow with your eyes."},
+      {id:"fom", name:"Foam Roll", sets:1, reps:"5 min", rest:0, eq:"Foam roller", desc:"Roll out quads, hamstrings, IT band, upper back, and lats. Spend extra time on tight spots. Don't roll directly on lower back or joints."}
+    ]
+  },
+  saturday: {
+    name: "Full Body Circuit",
+    mins: 40,
+    ex: [
+      {id:"gob", name:"Goblet Squat", sets:3, reps:"12", rest:45, eq:"Dumbbell", desc:"Hold dumbbell vertically at chest level. Squat down keeping chest up and elbows inside knees. Stand by driving through heels."},
+      {id:"psu", name:"Push-ups", sets:3, reps:"12-15", rest:45, eq:"Bodyweight", desc:"Hands shoulder-width apart, body in straight line. Lower chest to floor, push back up. Keep core tight, don't let hips sag."},
+      {id:"dbr", name:"Single Arm DB Row", sets:3, reps:"10 each", rest:45, eq:"Dumbbell", desc:"One hand and knee on bench, other foot on floor. Row dumbbell to hip, squeezing shoulder blade back. Lower with control. Do all reps on one side, then switch."},
+      {id:"stu", name:"Step-ups", sets:3, reps:"10 each", rest:45, eq:"Bench", desc:"Step onto bench with one foot, drive through that heel to stand up. Step down with control. Complete all reps on one leg before switching."},
+      {id:"pal", name:"Pallof Press", sets:3, reps:"10 each", rest:45, eq:"Cable", desc:"Stand sideways to cable machine, hold handle at chest. Press straight out, resisting the rotation. Hold briefly, return to chest. This is an anti-rotation core exercise."}
+    ]
+  }
+};
+
+// State
+var day = null;
+var workout = null;
+var allSets = [];
+var idx = 0;
+var log = [];
+var t0 = null;
+var tSetEnd = null;
+var tRestStart = null;
+var rpe = null;
+var angle = null;
+var tElapsed = null;
+var tRest = null;
+var workoutNotes = "";
+var history = [];
+var hasEverHadHistory = false;
+
+// Load history from localStorage
+function loadHistory() {
+  try {
+    var h = localStorage.getItem("workout_history");
+    if (h) {
+      var parsed = JSON.parse(h);
+      // Filter out any invalid entries
+      if (Array.isArray(parsed)) {
+        history = parsed.filter(function(w) {
+          return w && w.sets && Array.isArray(w.sets) && w.date;
+        });
+      }
+    }
+    var flag = localStorage.getItem("has_had_history");
+    if (flag === "true") {
+      hasEverHadHistory = true;
+    }
+  } catch(e) {
+    history = [];
+  }
+}
+
+function saveHistory() {
+  try {
+    localStorage.setItem("workout_history", JSON.stringify(history));
+    if (history.length > 0) {
+      localStorage.setItem("has_had_history", "true");
+      hasEverHadHistory = true;
+    }
+  } catch(e) {}
+}
+
+function getLastWorkout(exId) {
+  for (var i = history.length - 1; i >= 0; i--) {
+    var w = history[i];
+    if (w && w.sets && Array.isArray(w.sets)) {
+      for (var j = 0; j < w.sets.length; j++) {
+        var s = w.sets[j];
+        if (s && s.exId === exId && s.weight && s.reps && !s.skipped) {
+          return s;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function updateHistoryCount() {
+  document.getElementById("history-count").textContent = history.length;
+}
+
+function checkRestoreBanner() {
+  // Show banner if: no history now, but user has had history before (meaning it was cleared)
+  if (history.length === 0 && hasEverHadHistory) {
+    document.getElementById("restore-banner").classList.remove("hide");
+  } else {
+    document.getElementById("restore-banner").classList.add("hide");
+  }
+}
+
+// Init
+loadHistory();
+updateHistoryCount();
+checkRestoreBanner();
+
+function show(id) {
+  var screens = document.getElementsByClassName("screen");
+  for (var i = 0; i < screens.length; i++) {
+    screens[i].classList.add("hide");
+  }
+  document.getElementById(id).classList.remove("hide");
+}
+
+function fmt(s) {
+  var m = Math.floor(s / 60);
+  var sec = s % 60;
+  return m + ":" + (sec < 10 ? "0" : "") + sec;
+}
+
+function fmtDate(isoStr) {
+  var d = new Date(isoStr);
+  return d.toLocaleDateString();
+}
+
+function flat(w) {
+  var arr = [];
+  for (var i = 0; i < w.ex.length; i++) {
+    for (var j = 0; j < w.ex[i].sets; j++) {
+      arr.push({exIdx: i, setIdx: j, e: w.ex[i]});
+    }
+  }
+  return arr;
+}
+
+function goSelect() { 
+  updateHistoryCount();
+  checkRestoreBanner();
+  show("s-select"); 
+}
+
+function pickDay(d) {
+  day = d;
+  workout = DAYS[d];
+  allSets = flat(workout);
+  
+  document.getElementById("pv-title").textContent = workout.name;
+  document.getElementById("pv-sub").textContent = workout.ex.length + " exercises · " + allSets.length + " sets · ~" + workout.mins + " min";
+  
+  var html = "";
+  for (var i = 0; i < workout.ex.length; i++) {
+    var e = workout.ex[i];
+    html += '<div class="ex-item"><span>' + e.name + '</span><span style="color:#666">' + e.sets + " × " + e.reps + '</span></div>';
+  }
+  document.getElementById("pv-list").innerHTML = html;
+  
+  show("s-preview");
+}
+
+function beginWorkout() {
+  t0 = Date.now();
+  idx = 0;
+  log = [];
+  workoutNotes = "";
+  showSetScreen();
+}
+
+function showSetScreen() {
+  clearInterval(tElapsed);
+  clearInterval(tRest);
+  
+  var s = allSets[idx];
+  var e = s.e;
+  
+  document.getElementById("st-count").textContent = "Set " + (idx + 1) + " of " + allSets.length;
+  document.getElementById("st-prog").style.width = (log.length / allSets.length * 100) + "%";
+  document.getElementById("st-name").textContent = e.name;
+  document.getElementById("st-info").textContent = "Set " + (s.setIdx + 1) + " of " + e.sets + " · Target: " + e.reps;
+  
+  // Exercise info
+  document.getElementById("st-info-box").innerHTML = "<strong>How to:</strong> " + e.desc;
+  document.getElementById("st-info-box").classList.add("hide");
+  document.getElementById("st-info-toggle").textContent = "What's this exercise?";
+  
+  if (e.angle) {
+    document.getElementById("st-angle").classList.remove("hide");
+    document.getElementById("in-angle").value = angle || "";
+  } else {
+    document.getElementById("st-angle").classList.add("hide");
+  }
+  
+  tElapsed = setInterval(function() {
+    document.getElementById("st-elapsed").textContent = fmt(Math.floor((Date.now() - t0) / 1000));
+  }, 1000);
+  
+  show("s-set");
+}
+
+function toggleInfo() {
+  var box = document.getElementById("st-info-box");
+  var btn = document.getElementById("st-info-toggle");
+  if (box.classList.contains("hide")) {
+    box.classList.remove("hide");
+    btn.textContent = "Hide info";
+  } else {
+    box.classList.add("hide");
+    btn.textContent = "What's this exercise?";
+  }
+}
+
+function setDone() {
+  tSetEnd = Date.now();
+  angle = document.getElementById("in-angle").value || null;
+  showRestScreen();
+}
+
+function showSkipModal() {
+  document.getElementById("skip-reason").value = "";
+  document.getElementById("m-skip").classList.remove("hide");
+}
+
+function closeSkipModal() {
+  document.getElementById("m-skip").classList.add("hide");
+}
+
+function confirmSkip() {
+  var reason = document.getElementById("skip-reason").value || null;
+  var s = allSets[idx];
+  log.push({
+    exId: s.e.id,
+    exName: s.e.name,
+    set: s.setIdx + 1,
+    skipped: true,
+    skipReason: reason,
+    ts: new Date().toISOString()
+  });
+  closeSkipModal();
+  idx++;
+  if (idx >= allSets.length) {
+    showReviewScreen();
+  } else {
+    showSetScreen();
+  }
+}
+
+function showRestScreen() {
+  clearInterval(tElapsed);
+  clearInterval(tRest);
+  
+  var s = allSets[idx];
+  var e = s.e;
+  
+  document.getElementById("rs-count").textContent = "Set " + (idx + 1) + " of " + allSets.length;
+  document.getElementById("rs-prog").style.width = (log.length / allSets.length * 100) + "%";
+  document.getElementById("rs-name").textContent = e.name;
+  document.getElementById("rs-info").textContent = "Set " + (s.setIdx + 1) + " of " + e.sets;
+  document.getElementById("rs-target").textContent = "Target: " + e.rest + "s";
+  
+  // Weight recommendation
+  var last = getLastWorkout(e.id);
+  var hint = document.getElementById("weight-hint");
+  if (last) {
+    hint.textContent = "Last: " + last.weight + " lbs × " + last.reps + (last.rpe ? " @ RPE " + last.rpe : "");
+  } else {
+    hint.textContent = "";
+  }
+  
+  document.getElementById("in-weight").value = "";
+  document.getElementById("in-reps").value = "";
+  document.getElementById("in-note").value = "";
+  document.getElementById("in-note").classList.add("hide");
+  document.getElementById("note-tog").classList.remove("hide");
+  rpe = null;
+  var btns = document.getElementsByClassName("rpe-btn");
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove("sel");
+  
+  tRestStart = Date.now();
+  var target = e.rest;
+  
+  tRest = setInterval(function() {
+    var sec = Math.floor((Date.now() - tRestStart) / 1000);
+    var el = document.getElementById("rs-timer");
+    el.textContent = fmt(sec);
+    if (sec > target) {
+      el.classList.add("over");
+    } else {
+      el.classList.remove("over");
+    }
+  }, 1000);
+  
+  tElapsed = setInterval(function() {
+    document.getElementById("rs-elapsed").textContent = fmt(Math.floor((Date.now() - t0) / 1000));
+  }, 1000);
+  
+  show("s-rest");
+}
+
+function pickRpe(v) {
+  rpe = v;
+  var btns = document.getElementsByClassName("rpe-btn");
+  for (var i = 0; i < btns.length; i++) {
+    if (parseInt(btns[i].textContent) === v) {
+      btns[i].classList.add("sel");
+    } else {
+      btns[i].classList.remove("sel");
+    }
+  }
+}
+
+function showNote() {
+  document.getElementById("note-tog").classList.add("hide");
+  document.getElementById("in-note").classList.remove("hide");
+}
+
+function logSet() {
+  var s = allSets[idx];
+  var restSec = Math.floor((Date.now() - tRestStart) / 1000);
+  
+  log.push({
+    exId: s.e.id,
+    exName: s.e.name,
+    set: s.setIdx + 1,
+    target: s.e.reps,
+    weight: parseFloat(document.getElementById("in-weight").value) || null,
+    reps: parseInt(document.getElementById("in-reps").value) || null,
+    rpe: rpe,
+    note: document.getElementById("in-note").value || null,
+    angle: angle,
+    restTarget: s.e.rest,
+    restActual: restSec,
+    ts: new Date().toISOString()
+  });
+  
+  idx++;
+  angle = null;
+  
+  if (idx >= allSets.length) {
+    showReviewScreen();
+  } else {
+    showSetScreen();
+  }
+}
+
+function goBackSet() {
+  if (idx > 0 && log.length > 0) {
+    log.pop();
+    idx--;
+    showSetScreen();
+  }
+}
+
+function showReviewScreen() {
+  clearInterval(tElapsed);
+  clearInterval(tRest);
+  
+  var html = "";
+  for (var i = 0; i < log.length; i++) {
+    var e = log[i];
+    var info = [];
+    if (e.skipped) {
+      info.push("SKIPPED");
+      if (e.skipReason) info.push('"' + e.skipReason.substring(0, 30) + '"');
+    }
+    if (e.weight) info.push(e.weight + " lbs");
+    if (e.reps) info.push(e.reps + " reps");
+    if (e.rpe) info.push("RPE " + e.rpe);
+    if (e.angle) info.push(e.angle + "°");
+    if (e.note) info.push('"' + e.note.substring(0, 25) + '"');
+    
+    html += '<div class="review-item">';
+    html += '<div class="review-head">' + e.exName + ' · Set ' + e.set + '</div>';
+    html += '<div class="review-data">' + (info.length ? info.join(" · ") : "No data") + '</div>';
+    html += '<button class="review-edit" onclick="editEntry(' + i + ')">Edit</button>';
+    html += '</div>';
+  }
+  document.getElementById("rv-list").innerHTML = html;
+  document.getElementById("workout-notes").value = "";
+  
+  show("s-review");
+}
+
+function editEntry(i) {
+  var e = log[i];
+  if (e.skipped) {
+    var reason = prompt("Skip reason:", e.skipReason || "");
+    if (reason !== null) e.skipReason = reason || null;
+  } else {
+    var nr = prompt("Reps (current: " + (e.reps || "-") + "):", e.reps || "");
+    if (nr !== null) e.reps = parseInt(nr) || null;
+    var nw = prompt("Weight (current: " + (e.weight || "-") + "):", e.weight || "");
+    if (nw !== null) e.weight = parseFloat(nw) || null;
+  }
+  showReviewScreen();
+}
+
+function finishWorkout() {
+  workoutNotes = document.getElementById("workout-notes").value || null;
+  
+  var dur = Math.floor((Date.now() - t0) / 1000);
+  var sets = 0;
+  var vol = 0;
+  var rpes = [];
+  for (var i = 0; i < log.length; i++) {
+    if (!log[i].skipped && log[i].reps) {
+      sets++;
+      if (log[i].weight) vol += log[i].reps * log[i].weight;
+      if (log[i].rpe) rpes.push(log[i].rpe);
+    }
+  }
+  
+  // Save to history
+  var workoutData = {
+    version: "1.2",
+    workout: day,
+    name: workout.name,
+    date: new Date(t0).toISOString(),
+    duration: dur,
+    sets: log,
+    workoutNotes: workoutNotes,
+    summary: {
+      completed: sets,
+      skipped: log.filter(function(x){return x.skipped;}).length,
+      volume: vol,
+      avgRpe: rpes.length ? (rpes.reduce(function(a,b){return a+b;},0)/rpes.length).toFixed(1) : null
+    }
+  };
+  history.push(workoutData);
+  saveHistory();
+  
+  document.getElementById("dn-sub").textContent = fmt(dur) + " · " + sets + " sets";
+  document.getElementById("dn-sets").textContent = sets;
+  document.getElementById("dn-vol").textContent = vol.toLocaleString();
+  
+  show("s-done");
+}
+
+function exportData() {
+  // Export just this workout
+  var lastWorkout = history[history.length - 1];
+  if (!lastWorkout) return;
+  
+  var d = new Date(lastWorkout.date);
+  var ds = d.getFullYear() + "-" + ("0"+(d.getMonth()+1)).slice(-2) + "-" + ("0"+d.getDate()).slice(-2);
+  var nm = lastWorkout.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  var fn = "workout_" + ds + "_" + nm + ".json";
+  
+  var blob = new Blob([JSON.stringify(lastWorkout, null, 2)], {type: "application/json"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = fn;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportAllHistory() {
+  if (history.length === 0) {
+    alert("No workout history to export.");
+    return;
+  }
+  
+  // Sort by date
+  var sorted = history.slice().sort(function(a, b) {
+    return new Date(a.date) - new Date(b.date);
+  });
+  
+  var firstDate = new Date(sorted[0].date);
+  var lastDate = new Date(sorted[sorted.length - 1].date);
+  
+  var fmtD = function(d) {
+    return d.getFullYear() + "-" + ("0"+(d.getMonth()+1)).slice(-2) + "-" + ("0"+d.getDate()).slice(-2);
+  };
+  
+  var data = {
+    exportType: "full_history",
+    exportDate: new Date().toISOString(),
+    workoutCount: history.length,
+    dateRange: {
+      from: fmtD(firstDate),
+      to: fmtD(lastDate)
+    },
+    workouts: sorted
+  };
+  
+  var fn = "workout_history_" + fmtD(firstDate) + "_to_" + fmtD(lastDate) + ".json";
+  
+  var blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = fn;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function resetAll() {
+  goSelect();
+}
+
+// History modal
+function showHistory() {
+  var html = "";
+  if (history.length === 0) {
+    html = '<p style="color:#666;">No workout history yet.</p>';
+  } else {
+    // Show newest first
+    for (var i = history.length - 1; i >= 0; i--) {
+      var w = history[i];
+      var d = new Date(w.date);
+      var ds = d.toLocaleDateString();
+      html += '<div class="history-item">';
+      html += '<div class="history-date">' + ds + '</div>';
+      html += '<strong>' + w.name + '</strong>';
+      if (w.summary) {
+        html += ' · ' + w.summary.completed + ' sets · ' + (w.summary.volume || 0).toLocaleString() + ' lbs';
+      }
+      html += '</div>';
+    }
+  }
+  document.getElementById("history-list").innerHTML = html;
+  document.getElementById("m-history").classList.remove("hide");
+}
+
+function closeHistory() {
+  document.getElementById("m-history").classList.add("hide");
+}
+
+// Import modal
+function showImport() {
+  document.getElementById("import-status").textContent = "";
+  document.getElementById("import-input").value = "";
+  document.getElementById("m-import").classList.remove("hide");
+}
+
+function closeImport() {
+  document.getElementById("m-import").classList.add("hide");
+  updateHistoryCount();
+  checkRestoreBanner();
+}
+
+function handleImport(files) {
+  var imported = 0;
+  var skipped = 0;
+  var failed = 0;
+  var pending = files.length;
+  
+  if (pending === 0) return;
+  
+  for (var i = 0; i < files.length; i++) {
+    (function(file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var data = JSON.parse(e.target.result);
+          
+          // Check if it's a full history export
+          if (data.exportType === "full_history" && data.workouts && Array.isArray(data.workouts)) {
+            for (var j = 0; j < data.workouts.length; j++) {
+              var w = data.workouts[j];
+              if (w && w.sets && Array.isArray(w.sets) && w.date) {
+                var isDupe = false;
+                for (var k = 0; k < history.length; k++) {
+                  if (history[k] && history[k].date === w.date) {
+                    isDupe = true;
+                    break;
+                  }
+                }
+                if (!isDupe) {
+                  history.push(w);
+                  imported++;
+                } else {
+                  skipped++;
+                }
+              }
+            }
+          }
+          // Single workout
+          else if (data.sets && Array.isArray(data.sets) && data.date) {
+            var isDupe = false;
+            for (var k = 0; k < history.length; k++) {
+              if (history[k] && history[k].date === data.date) {
+                isDupe = true;
+                break;
+              }
+            }
+            if (!isDupe) {
+              history.push(data);
+              imported++;
+            } else {
+              skipped++;
+            }
+          } else {
+            failed++;
+          }
+        } catch(err) {
+          failed++;
+        }
+        
+        pending--;
+        if (pending === 0) {
+          // Filter out any null/undefined entries and sort by date
+          history = history.filter(function(w) {
+            return w && w.sets && Array.isArray(w.sets) && w.date;
+          });
+          history.sort(function(a, b) {
+            return new Date(a.date) - new Date(b.date);
+          });
+          saveHistory();
+          
+          var msg = "Imported " + imported + " workout(s)";
+          if (skipped > 0) msg += ", " + skipped + " already existed";
+          if (failed > 0) msg += ", " + failed + " failed";
+          
+          // Add date range if imported
+          if (imported > 0 && history.length > 0) {
+            var first = new Date(history[0].date).toLocaleDateString();
+            var last = new Date(history[history.length - 1].date).toLocaleDateString();
+            if (first === last) {
+              msg += " (" + first + ")";
+            } else {
+              msg += " (" + first + " - " + last + ")";
+            }
+          }
+          
+          document.getElementById("import-status").innerHTML = '<span style="color:#22c55e;">✓ ' + msg + '</span>';
+          updateHistoryCount();
+        }
+      };
+      reader.readAsText(file);
+    })(files[i]);
+  }
+}
+</script>
+
+</body>
+</html>
