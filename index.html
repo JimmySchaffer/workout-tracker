@@ -75,6 +75,40 @@
     }
     .ex-item:last-child { border-bottom: none; }
     
+    .ex-preview {
+      padding: 14px 0;
+      border-bottom: 1px solid #333;
+    }
+    .ex-preview:last-child { border-bottom: none; }
+    .ex-preview-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .ex-preview-name { font-weight: 600; font-size: 15px; }
+    .ex-preview-sets { color: #666; font-size: 13px; }
+    .ex-preview-toggle { color: #a3a3a3; font-size: 18px; transition: transform 0.2s; }
+    .ex-preview-toggle.open { transform: rotate(180deg); }
+    .ex-preview-body {
+      display: none;
+      padding-top: 10px;
+    }
+    .ex-preview-body.show { display: block; }
+    .ex-preview-desc {
+      font-size: 13px;
+      color: #a3a3a3;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    .ex-preview-video {
+      display: inline-block;
+      font-size: 13px;
+      color: #22c55e;
+      text-decoration: none;
+      padding: 6px 0;
+    }
+    
     .header { display: flex; justify-content: space-between; font-size: 14px; color: #a3a3a3; margin-bottom: 12px; }
     .prog-bar { height: 4px; background: #262626; border-radius: 2px; margin-bottom: 20px; }
     .prog-fill { height: 100%; background: #22c55e; border-radius: 2px; }
@@ -271,6 +305,7 @@
   <div class="card">
     <h1 id="pv-title">-</h1>
     <p class="sub" id="pv-sub">-</p>
+    <button type="button" class="note-toggle" id="btn-expand-all" style="margin-top:12px;" onclick="toggleAllPreviews()">Show all descriptions</button>
     <div class="ex-list" id="pv-list"></div>
     <button type="button" class="btn btn-green" id="btn-start">Start workout</button>
     <button type="button" class="btn btn-ghost" id="btn-back-select">← Back</button>
@@ -301,6 +336,12 @@
       <p style="font-size:11px;color:#666;margin-top:6px;text-align:center;">25° hits more chest, 35° more shoulders</p>
     </div>
     
+    <div id="st-timer-box" class="timer-box" style="margin-top:20px; border-top:1px solid #333; border-bottom:none; padding-bottom:0;">
+      <div class="timer-label">Working time</div>
+      <div class="timer-val" id="st-set-timer">0:00</div>
+      <div class="timer-sub" id="st-timer-target"></div>
+    </div>
+    
     <button type="button" class="btn btn-green" id="btn-set-done">Set complete ✓</button>
     <button type="button" class="btn btn-ghost" id="btn-skip">Skip this set</button>
   </div>
@@ -324,15 +365,21 @@
     <p class="sub" id="rs-info">-</p>
     
     <div style="margin-top:24px;">
-      <div class="field">
+      <div class="field" id="f-weight">
         <label>Weight (lbs total)</label>
         <input type="number" inputmode="decimal" id="in-weight" placeholder="0">
         <div class="field-hint" id="weight-hint"></div>
-        <div class="field-sub">For dumbbells: enter combined weight of both</div>
+        <div class="field-sub" id="weight-sub">For dumbbells: enter combined weight of both</div>
       </div>
-      <div class="field">
+      <div class="field" id="f-reps">
         <label>Reps</label>
         <input type="number" inputmode="numeric" id="in-reps" placeholder="0">
+      </div>
+      <div class="field hide" id="f-duration">
+        <label>Duration (seconds)</label>
+        <input type="number" inputmode="numeric" id="in-duration" placeholder="0">
+        <div class="field-hint" id="duration-hint"></div>
+        <div class="field-sub" id="duration-sub">How long you actually held / worked</div>
       </div>
       <div class="field">
         <label>RPE (difficulty)</label>
@@ -453,9 +500,9 @@
       name: "Cardio + Core",
       mins: 35,
       ex: [
-        {id:"bike", name:"Stationary Bike", sets:1, reps:"15 min", rest:60, desc:"Moderate pace, RPM 70-90. Should be able to hold a conversation."},
-        {id:"hiit", name:"HIIT Intervals", sets:5, reps:"30s/30s", rest:30, desc:"30 seconds all-out, 30 seconds rest. Repeat 5 times."},
-        {id:"plnk", name:"Plank Hold", sets:3, reps:"30-45s", rest:45, desc:"Forearms and toes on ground, body straight. Keep core tight, don't sag."},
+        {id:"warmup", name:"Cardio Warm-up", sets:1, reps:"15 min", rest:60, timed:true, mobility:true, desc:"5 min jumping jacks, 5 min high knees, 5 min shadow boxing. Keep a steady pace — you should be able to hold a conversation."},
+        {id:"hiit", name:"HIIT Intervals", sets:5, reps:"30s on", rest:30, timed:true, desc:"30 seconds all-out effort (burpees, mountain climbers, or high knees), then rest. Track actual seconds held at full intensity."},
+        {id:"plnk", name:"Weighted Plank", sets:3, reps:"30-45s", rest:45, timed:true, desc:"Forearms and toes on ground, body straight. Once you can hold 45s at RPE 7, add a weight plate on your back and reset to 30s. Progression = more weight, not more time."},
         {id:"crch", name:"Cable Crunches", sets:3, reps:"15-20", rest:45, desc:"Kneel facing cable, hold rope behind head. Crunch down flexing spine."},
         {id:"lgrs", name:"Hanging Leg Raises", sets:3, reps:"10-12", rest:45, desc:"Hang from bar, raise legs parallel to floor. Control descent."}
       ]
@@ -486,11 +533,11 @@
       name: "Cardio + Mobility",
       mins: 30,
       ex: [
-        {id:"bk2", name:"Easy Bike", sets:1, reps:"20 min", rest:0, desc:"Light effort, recovery pace. Easy conversation."},
-        {id:"hip", name:"Hip Flexor Stretch", sets:2, reps:"45s each", rest:15, desc:"Kneel on one knee, shift hips forward. Feel stretch in front of hip."},
-        {id:"pig", name:"Pigeon Pose", sets:2, reps:"60s each", rest:15, desc:"One knee forward and out, other leg back. Sink hips, feel glute stretch."},
+        {id:"walk", name:"Brisk Walk / Light Jog", sets:1, reps:"20 min", rest:0, timed:true, mobility:true, desc:"Easy-pace walk or light jog around the neighborhood. Recovery effort — keep it conversational and relaxed."},
+        {id:"hip", name:"Hip Flexor Stretch", sets:2, reps:"45s each", rest:15, timed:true, mobility:true, desc:"Kneel on one knee, shift hips forward. Feel stretch in front of hip."},
+        {id:"pig", name:"Pigeon Pose", sets:2, reps:"60s each", rest:15, timed:true, mobility:true, desc:"One knee forward and out, other leg back. Sink hips, feel glute stretch."},
         {id:"tsp", name:"Thoracic Rotation", sets:2, reps:"10 each", rest:15, desc:"Hands and knees, hand behind head. Rotate elbow down then up to ceiling."},
-        {id:"fom", name:"Foam Roll", sets:1, reps:"5 min", rest:0, desc:"Roll quads, hamstrings, IT band, upper back, lats."}
+        {id:"fom", name:"Foam Roll", sets:1, reps:"5 min", rest:0, timed:true, mobility:true, desc:"Roll quads, hamstrings, IT band, upper back, lats."}
       ]
     },
     saturday: {
@@ -498,7 +545,7 @@
       mins: 40,
       ex: [
         {id:"gob", name:"Goblet Squat", sets:3, reps:"12", rest:45, desc:"Hold dumbbell at chest. Squat keeping chest up, elbows inside knees."},
-        {id:"psu", name:"Push-ups", sets:3, reps:"12-15", rest:45, desc:"Hands shoulder-width, body straight. Lower chest to floor, push up."},
+        {id:"psu", name:"Push-ups", sets:3, reps:"12-15", rest:45, desc:"Hands shoulder-width, body straight. Lower chest to floor, push up. Once 15 reps feels easy at RPE 7, add a weight plate on your back or use a weight vest."},
         {id:"dbr", name:"Single Arm DB Row", sets:3, reps:"10 each", rest:45, desc:"One hand on bench, row dumbbell to hip. Squeeze shoulder blade."},
         {id:"stu", name:"Step-ups", sets:3, reps:"10 each", rest:45, desc:"Step onto bench, drive through heel to stand. Control down."},
         {id:"pal", name:"Pallof Press", sets:3, reps:"10 each", rest:45, desc:"Stand sideways to cable, press out resisting rotation. Anti-rotation core."}
@@ -518,6 +565,9 @@
   var angle = null;
   var tElapsed = null;
   var tRest = null;
+  var tSetStart = null;
+  var tSetTimer = null;
+  var lastSetDuration = null;
   var workoutNotes = "";
   var history = [];
   var hasEverHadHistory = false;
@@ -589,7 +639,7 @@
       if (w && w.sets) {
         for (var j = 0; j < w.sets.length; j++) {
           var s = w.sets[j];
-          if (s && s.exId === exId && s.weight && s.reps && !s.skipped) {
+          if (s && s.exId === exId && (s.weight || s.reps || s.duration) && !s.skipped) {
             return s;
           }
         }
@@ -624,11 +674,55 @@
     var html = "";
     for (var i = 0; i < workout.ex.length; i++) {
       var e = workout.ex[i];
-      html += '<div class="ex-item"><span>' + e.name + '</span><span style="color:#666">' + e.sets + " × " + e.reps + '</span></div>';
+      var searchQ = encodeURIComponent(e.name + " form tutorial beginner");
+      html += '<div class="ex-preview">';
+      html += '<div class="ex-preview-head" onclick="togglePreview(this)">';
+      html += '<div><div class="ex-preview-name">' + e.name + '</div>';
+      html += '<div class="ex-preview-sets">' + e.sets + " × " + e.reps + (e.rest ? " · " + e.rest + "s rest" : "") + '</div></div>';
+      html += '<span class="ex-preview-toggle">▾</span>';
+      html += '</div>';
+      html += '<div class="ex-preview-body">';
+      html += '<div class="ex-preview-desc">' + e.desc + '</div>';
+      html += '<a class="ex-preview-video" href="https://www.youtube.com/results?search_query=' + searchQ + '" target="_blank" rel="noopener">▶ Watch a how-to video</a>';
+      html += '</div>';
+      html += '</div>';
     }
     $("pv-list").innerHTML = html;
     show("s-preview");
   }
+  
+  // Expose toggle for inline onclick
+  window.togglePreview = function(el) {
+    var body = el.nextElementSibling;
+    var arrow = el.querySelector(".ex-preview-toggle");
+    if (body.classList.contains("show")) {
+      body.classList.remove("show");
+      arrow.classList.remove("open");
+    } else {
+      body.classList.add("show");
+      arrow.classList.add("open");
+    }
+  };
+  
+  window.toggleAllPreviews = function() {
+    var bodies = document.querySelectorAll(".ex-preview-body");
+    var arrows = document.querySelectorAll(".ex-preview-toggle");
+    var btn = $("btn-expand-all");
+    var anyHidden = false;
+    for (var i = 0; i < bodies.length; i++) {
+      if (!bodies[i].classList.contains("show")) { anyHidden = true; break; }
+    }
+    for (var i = 0; i < bodies.length; i++) {
+      if (anyHidden) {
+        bodies[i].classList.add("show");
+        arrows[i].classList.add("open");
+      } else {
+        bodies[i].classList.remove("show");
+        arrows[i].classList.remove("open");
+      }
+    }
+    btn.textContent = anyHidden ? "Hide all descriptions" : "Show all descriptions";
+  };
   
   function beginWorkout() {
     t0 = Date.now();
@@ -641,6 +735,7 @@
   function showSetScreen() {
     if (tElapsed) clearInterval(tElapsed);
     if (tRest) clearInterval(tRest);
+    if (tSetTimer) clearInterval(tSetTimer);
     
     var s = allSets[idx];
     var e = s.e;
@@ -660,6 +755,22 @@
     } else {
       $("st-angle").classList.add("hide");
     }
+    
+    // Set working timer
+    tSetStart = Date.now();
+    $("st-set-timer").textContent = "0:00";
+    $("st-set-timer").classList.remove("over");
+    
+    if (e.timed) {
+      $("st-timer-target").textContent = "Target: " + e.reps;
+    } else {
+      $("st-timer-target").textContent = "";
+    }
+    
+    tSetTimer = setInterval(function() {
+      var sec = Math.floor((Date.now() - tSetStart) / 1000);
+      $("st-set-timer").textContent = fmt(sec);
+    }, 1000);
     
     tElapsed = setInterval(function() {
       $("st-elapsed").textContent = fmt(Math.floor((Date.now() - t0) / 1000));
@@ -681,6 +792,8 @@
   }
   
   function setDone() {
+    if (tSetTimer) clearInterval(tSetTimer);
+    lastSetDuration = Math.floor((Date.now() - tSetStart) / 1000);
     angle = $("in-angle").value || null;
     showRestScreen();
   }
@@ -695,6 +808,7 @@
   }
   
   function confirmSkip() {
+    if (tSetTimer) clearInterval(tSetTimer);
     var reason = $("skip-reason").value || null;
     var s = allSets[idx];
     log.push({
@@ -720,6 +834,8 @@
     
     var s = allSets[idx];
     var e = s.e;
+    var isTimed = e.timed;
+    var isMobility = e.mobility;
     
     $("rs-count").textContent = "Set " + (idx + 1) + " of " + allSets.length;
     $("rs-prog").style.width = (log.length / allSets.length * 100) + "%";
@@ -727,19 +843,57 @@
     $("rs-info").textContent = "Set " + (s.setIdx + 1) + " of " + e.sets;
     $("rs-target").textContent = "Target: " + e.rest + "s";
     
+    // Show/hide fields based on exercise type
+    if (isTimed) {
+      $("f-reps").classList.add("hide");
+      $("f-duration").classList.remove("hide");
+      if (isMobility) {
+        $("f-weight").classList.add("hide");
+      } else {
+        $("f-weight").classList.remove("hide");
+        $("weight-sub").textContent = "Add plate weight if using (0 = bodyweight)";
+      }
+    } else {
+      $("f-reps").classList.remove("hide");
+      $("f-duration").classList.add("hide");
+      $("f-weight").classList.remove("hide");
+      $("weight-sub").textContent = "For dumbbells: enter combined weight of both";
+    }
+    
     var last = getLastWorkout(e.id);
     if (last) {
-      $("weight-hint").textContent = "Last: " + last.weight + " lbs × " + last.reps + (last.rpe ? " @ RPE " + last.rpe : "");
+      if (isTimed) {
+        var hintParts = [];
+        if (last.weight) hintParts.push(last.weight + " lbs");
+        if (last.duration) hintParts.push(last.duration + "s");
+        else if (last.reps) hintParts.push(last.reps + " reps");
+        if (last.rpe) hintParts.push("RPE " + last.rpe);
+        $("duration-hint").textContent = hintParts.length ? "Last: " + hintParts.join(" · ") : "";
+        $("weight-hint").textContent = last.weight ? "Last: " + last.weight + " lbs" : "";
+      } else {
+        $("weight-hint").textContent = "Last: " + last.weight + " lbs × " + last.reps + (last.rpe ? " @ RPE " + last.rpe : "");
+        $("duration-hint").textContent = "";
+      }
     } else {
       $("weight-hint").textContent = "";
+      $("duration-hint").textContent = "";
     }
     
     $("in-weight").value = "";
     $("in-reps").value = "";
+    $("in-duration").value = "";
     $("in-note").value = "";
     $("in-note").classList.add("hide");
     $("note-tog").classList.remove("hide");
     rpe = null;
+    
+    // Auto-fill duration from set timer
+    if (isTimed && lastSetDuration !== null) {
+      $("in-duration").value = lastSetDuration;
+      $("duration-sub").textContent = "Auto-filled from timer — edit if needed";
+    } else {
+      $("duration-sub").textContent = "How long you actually held / worked";
+    }
     
     var btns = document.querySelectorAll(".rpe-btn");
     for (var i = 0; i < btns.length; i++) {
@@ -788,21 +942,26 @@
   function logSet() {
     var s = allSets[idx];
     var restSec = Math.floor((Date.now() - tRestStart) / 1000);
+    var isTimed = s.e.timed;
     
-    log.push({
+    var entry = {
       exId: s.e.id,
       exName: s.e.name,
       set: s.setIdx + 1,
       target: s.e.reps,
       weight: parseFloat($("in-weight").value) || null,
-      reps: parseInt($("in-reps").value) || null,
+      reps: isTimed ? null : (parseInt($("in-reps").value) || null),
+      duration: isTimed ? (parseInt($("in-duration").value) || null) : null,
       rpe: rpe,
       note: $("in-note").value || null,
       angle: angle,
+      timed: isTimed || false,
       restTarget: s.e.rest,
       restActual: restSec,
       ts: new Date().toISOString()
-    });
+    };
+    
+    log.push(entry);
     
     idx++;
     angle = null;
@@ -835,6 +994,7 @@
         if (e.skipReason) info.push('"' + e.skipReason.substring(0, 30) + '"');
       }
       if (e.weight) info.push(e.weight + " lbs");
+      if (e.duration) info.push(e.duration + "s held");
       if (e.reps) info.push(e.reps + " reps");
       if (e.rpe) info.push("RPE " + e.rpe);
       if (e.angle) info.push(e.angle + "°");
@@ -858,15 +1018,15 @@
     var vol = 0;
     var rpes = [];
     for (var i = 0; i < log.length; i++) {
-      if (!log[i].skipped && log[i].reps) {
+      if (!log[i].skipped && (log[i].reps || log[i].duration)) {
         sets++;
-        if (log[i].weight) vol += log[i].reps * log[i].weight;
+        if (log[i].weight && log[i].reps) vol += log[i].reps * log[i].weight;
         if (log[i].rpe) rpes.push(log[i].rpe);
       }
     }
     
     var workoutData = {
-      version: "1.2",
+      version: "1.3",
       workout: day,
       name: workout.name,
       date: new Date(t0).toISOString(),
@@ -962,7 +1122,8 @@
         html += '<div class="history-date">' + ds + '</div>';
         html += '<strong>' + (w.name || "Workout") + '</strong>';
         if (w.summary) {
-          html += ' · ' + (w.summary.completed || 0) + ' sets · ' + (w.summary.volume || 0).toLocaleString() + ' lbs';
+          html += ' · ' + (w.summary.completed || 0) + ' sets';
+          if (w.summary.volume > 0) html += ' · ' + (w.summary.volume || 0).toLocaleString() + ' lbs';
         }
         html += '</div>';
       }
