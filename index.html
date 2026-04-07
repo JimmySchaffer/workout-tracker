@@ -178,6 +178,7 @@
       justify-content: center;
       padding: 20px;
       z-index: 100;
+      touch-action: manipulation;
     }
     .modal-content {
       background: #1a1a1a;
@@ -187,6 +188,7 @@
       width: 100%;
       max-height: 80vh;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .modal h2 { margin-bottom: 16px; }
     
@@ -200,15 +202,16 @@
     .history-date { color: #a3a3a3; font-size: 11px; }
     
     .import-area {
+      display: block;
       border: 2px dashed #333;
       border-radius: 12px;
       padding: 24px;
       text-align: center;
       margin-top: 16px;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
     .import-area:active { border-color: #22c55e; }
-    .import-area input { display: none; }
     
     .restore-banner {
       background: #262626;
@@ -297,8 +300,8 @@
   </div>
   
   <div class="card">
-    <button class="btn btn-gray" onclick="showHistory()" style="margin-top:0;">View History (<span id="history-count">0</span> workouts)</button>
-    <button class="btn btn-ghost" onclick="showImport()">Import Backup</button>
+    <button type="button" class="btn btn-gray" onclick="showHistory()" style="margin-top:0;">View History (<span id="history-count">0</span> workouts)</button>
+    <button type="button" class="btn btn-ghost" onclick="showImport()">Import Backup</button>
   </div>
 </div>
 
@@ -458,11 +461,11 @@
   <div class="modal-content">
     <h2>Import Backup</h2>
     <p class="sub">Upload your workout JSON files or an all-history backup</p>
-    <div class="import-area" onclick="document.getElementById('import-input').click()">
+    <label for="import-input" class="import-area">
       <p style="color:#a3a3a3;">Tap to select files</p>
       <p style="color:#666; font-size:12px; margin-top:8px;">Accepts individual workouts or full history backup</p>
-      <input type="file" id="import-input" accept=".json" multiple onchange="handleImport(this.files)">
-    </div>
+    </label>
+    <input type="file" id="import-input" accept=".json,application/json" multiple onchange="handleImport(this.files)" style="display:none;">
     <div id="import-status" style="margin-top:16px; font-size:14px; color:#a3a3a3;"></div>
     <button class="btn btn-ghost" onclick="closeImport()">Close</button>
   </div>
