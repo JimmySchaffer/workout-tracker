@@ -637,6 +637,9 @@
             } else {
               $("coach-changes").innerHTML = "";
             }
+            if (resp.programNotes) {
+              $("coach-changes").innerHTML += '<div style="margin-top:8px; padding-top:8px; border-top:1px solid #22c55e44; color:#a3a3a3; font-style:italic;">' + resp.programNotes + '</div>';
+            }
             $("coach-feedback").classList.remove("hide");
           }
         } catch(e) {}
