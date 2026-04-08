@@ -280,6 +280,10 @@
     <button type="button" class="btn btn-outline" id="btn-restore" style="margin-top:0;">Restore from Backup</button>
   </div>
 
+  <div id="coach-update-banner" class="hide" style="background:#1a1a1a; border:1px solid #22c55e; border-radius:12px; padding:14px; margin-bottom:16px; font-size:13px; color:#86efac; text-align:center;">
+    <span id="coach-update-text"></span>
+  </div>
+
   <div class="card">
     <h1>Workout Tracker</h1>
     <p class="sub">Select today's workout</p>
@@ -430,13 +434,22 @@
       <div class="stat"><div class="stat-val" id="dn-vol">0</div><div class="stat-lbl">Volume</div></div>
     </div>
     
+    <div id="coach-feedback" class="card hide" style="text-align:left; margin-top:16px; background:#14532d; border:1px solid #22c55e;">
+      <div style="font-size:12px; color:#86efac; text-transform:uppercase; margin-bottom:8px;">Coach Feedback</div>
+      <p id="coach-text" style="font-size:15px; line-height:1.5; color:#f5f5f5;"></p>
+      <div id="coach-changes" style="margin-top:12px; font-size:13px; color:#86efac;"></div>
+    </div>
+    <div id="coach-loading" class="hide" style="text-align:center; margin-top:16px; color:#a3a3a3; font-size:14px;">
+      Analyzing workout...
+    </div>
+
     <div class="backup-reminder">
       <span class="saved-badge">✓ Saved locally</span>
       <p>Download a backup to keep your data safe</p>
       <button type="button" class="btn btn-green" id="btn-export" style="margin-top:0;">Download This Workout</button>
       <button type="button" class="btn btn-gray" id="btn-export-all">Download All History</button>
     </div>
-    
+
     <button type="button" class="btn btn-ghost" id="btn-done">Done</button>
   </div>
 </div>
@@ -553,6 +566,129 @@
     }
   };
   
+  // Coach API
+  var COACH_API = "https://gandalfs-mac-studio.tailc4f07d.ts.net/api/coach";
+  var coachFeedback = null;
+
+  function fetchProgram() {
+    var x = new XMLHttpRequest();
+    x.open("GET", COACH_API + "/program", true);
+    x.timeout = 10000;
+    x.onload = function() {
+      if (x.status === 200) {
+        try {
+          var prog = JSON.parse(x.responseText);
+          mergeProgram(prog);
+          if (prog.changes && prog.changes.length > 0) {
+            var last = prog.changes[prog.changes.length - 1];
+            $("coach-update-text").textContent = "Program updated: " + last.exerciseName + " " + last.field + " changed to " + last.newValue;
+            $("coach-update-banner").classList.remove("hide");
+          }
+        } catch(e) {}
+      }
+    };
+    x.onerror = function() {};
+    x.ontimeout = function() {};
+    x.send();
+    flushCoachQueue();
+  }
+
+  function mergeProgram(prog) {
+    var dayKeys = ["monday","tuesday","wednesday","thursday","friday","saturday"];
+    for (var i = 0; i < dayKeys.length; i++) {
+      var dk = dayKeys[i];
+      if (!prog[dk] || !prog[dk].ex) continue;
+      if (!DAYS[dk]) continue;
+      for (var j = 0; j < prog[dk].ex.length; j++) {
+        var pe = prog[dk].ex[j];
+        for (var k = 0; k < DAYS[dk].ex.length; k++) {
+          if (DAYS[dk].ex[k].id === pe.id) {
+            if (pe.sets !== undefined) DAYS[dk].ex[k].sets = pe.sets;
+            if (pe.reps !== undefined) DAYS[dk].ex[k].reps = pe.reps;
+            if (pe.rest !== undefined) DAYS[dk].ex[k].rest = pe.rest;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  function sendToCoach(workoutData) {
+    $("coach-loading").classList.remove("hide");
+    $("coach-feedback").classList.add("hide");
+    var x = new XMLHttpRequest();
+    x.open("POST", COACH_API + "/workout", true);
+    x.setRequestHeader("Content-Type", "application/json");
+    x.timeout = 200000;
+    x.onload = function() {
+      $("coach-loading").classList.add("hide");
+      if (x.status === 200) {
+        try {
+          var resp = JSON.parse(x.responseText);
+          if (resp.feedback) {
+            $("coach-text").textContent = resp.feedback;
+            if (resp.changes && resp.changes.length > 0) {
+              var html = "";
+              for (var i = 0; i < resp.changes.length; i++) {
+                var c = resp.changes[i];
+                html += "&#8226; " + c.exerciseName + ": " + c.field + " " + c.oldValue + " → " + c.newValue + "<br>";
+              }
+              $("coach-changes").innerHTML = html;
+            } else {
+              $("coach-changes").innerHTML = "";
+            }
+            $("coach-feedback").classList.remove("hide");
+          }
+        } catch(e) {}
+      } else {
+        queueForCoach(workoutData);
+      }
+    };
+    x.onerror = function() {
+      $("coach-loading").classList.add("hide");
+      queueForCoach(workoutData);
+    };
+    x.ontimeout = function() {
+      $("coach-loading").classList.add("hide");
+      queueForCoach(workoutData);
+    };
+    x.send(JSON.stringify(workoutData));
+  }
+
+  function queueForCoach(workoutData) {
+    try {
+      var q = JSON.parse(localStorage.getItem("coach_queue") || "[]");
+      q.push(workoutData);
+      localStorage.setItem("coach_queue", JSON.stringify(q));
+    } catch(e) {}
+  }
+
+  function flushCoachQueue() {
+    try {
+      var q = JSON.parse(localStorage.getItem("coach_queue") || "[]");
+      if (q.length === 0) return;
+      var item = q.shift();
+      var x = new XMLHttpRequest();
+      x.open("POST", COACH_API + "/workout", true);
+      x.setRequestHeader("Content-Type", "application/json");
+      x.timeout = 200000;
+      x.onload = function() {
+        if (x.status === 200) {
+          localStorage.setItem("coach_queue", JSON.stringify(q));
+          if (q.length > 0) flushCoachQueue();
+        } else {
+          q.unshift(item);
+          localStorage.setItem("coach_queue", JSON.stringify(q));
+        }
+      };
+      x.onerror = function() {
+        q.unshift(item);
+        localStorage.setItem("coach_queue", JSON.stringify(q));
+      };
+      x.send(JSON.stringify(item));
+    } catch(e) {}
+  }
+
   // State
   var day = null;
   var workout = null;
@@ -1042,7 +1178,8 @@
     };
     history.push(workoutData);
     saveHistory();
-    
+    sendToCoach(workoutData);
+
     $("dn-sub").textContent = fmt(dur) + " · " + sets + " sets";
     $("dn-sets").textContent = sets;
     $("dn-vol").textContent = vol.toLocaleString();
@@ -1237,6 +1374,7 @@
   function init() {
     loadHistory();
     updateUI();
+    fetchProgram();
     
     // Day buttons
     $("day-mon").addEventListener("click", function() { pickDay("monday"); });
