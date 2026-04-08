@@ -606,6 +606,8 @@
             if (pe.sets !== undefined) DAYS[dk].ex[k].sets = pe.sets;
             if (pe.reps !== undefined) DAYS[dk].ex[k].reps = pe.reps;
             if (pe.rest !== undefined) DAYS[dk].ex[k].rest = pe.rest;
+            if (pe.targetWeight !== undefined) DAYS[dk].ex[k].targetWeight = pe.targetWeight;
+            if (pe.targetNote !== undefined) DAYS[dk].ex[k].targetNote = pe.targetNote;
             break;
           }
         }
@@ -1011,6 +1013,9 @@
       $("weight-sub").textContent = "For dumbbells: enter combined weight of both";
     }
     
+    var coachTarget = e.targetWeight !== undefined ? e.targetWeight : null;
+    var coachNote = e.targetNote || "";
+
     var last = getLastWorkout(e.id);
     if (last) {
       if (isTimed) {
@@ -1022,15 +1027,23 @@
         $("duration-hint").textContent = hintParts.length ? "Last: " + hintParts.join(" · ") : "";
         $("weight-hint").textContent = last.weight ? "Last: " + last.weight + " lbs" : "";
       } else {
-        $("weight-hint").textContent = "Last: " + last.weight + " lbs × " + last.reps + (last.rpe ? " @ RPE " + last.rpe : "");
+        var hintText = "Last: " + last.weight + " lbs × " + last.reps + (last.rpe ? " @ RPE " + last.rpe : "");
+        if (coachTarget !== null) {
+          hintText = "Coach target: " + coachTarget + " lbs" + (coachNote ? " — " + coachNote : "") + "\n" + hintText;
+        }
+        $("weight-hint").textContent = hintText;
         $("duration-hint").textContent = "";
       }
     } else {
-      $("weight-hint").textContent = "";
+      if (coachTarget !== null) {
+        $("weight-hint").textContent = "Coach target: " + coachTarget + " lbs" + (coachNote ? " — " + coachNote : "");
+      } else {
+        $("weight-hint").textContent = "";
+      }
       $("duration-hint").textContent = "";
     }
-    
-    $("in-weight").value = "";
+
+    $("in-weight").value = coachTarget !== null && coachTarget > 0 ? coachTarget : "";
     $("in-reps").value = "";
     $("in-duration").value = "";
     $("in-note").value = "";
